@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link href="https://fonts.googleapis.com/css?family=Lobster" rel="stylesheet">
+    <style>
+    html {
+      height: 100%;
+    }
+    body {
+      margin: 0;
+      height: 100%;
+      padding: 0;
+    }
+    button {
+      box-shadow: rgb(122, 188, 216) 0px 1px 0px 0px;
+      background: linear-gradient(rgb(51, 189, 239) 5%, rgb(1, 154, 210) 100%) rgb(51, 189, 239);
+      border-radius: 6px;
+      border: 1px solid rgb(5, 127, 208);
+      cursor: pointer;
+    }
+    .container {
+      height: 100%;
+      width: 100%;
+    }
+    h1 {
+      text-align: center;
+      z-index: 2;
+    }
+    #clear {
+      position: relative;
+      bottom: 35px;
+      z-index: 2;
+    }
+    #clear button {
+      background-repeat: no-repeat;
+      background-image: url("clear.png");
+      height: 34px;
+      width: 37px;
+    }
+    #map {
+      height: 100%;
+      width: 100%;
+    }
+    #menu {
+      position: absolute;
+      top: 3.5em;
+      left: 3.8em;
+    }
+    #mileDisplay {
+      box-shadow: rgb(122, 188, 216) 0px 1px 0px 0px;
+      background: linear-gradient(rgb(51, 189, 239) 5%, rgb(1, 154, 210) 100%) rgb(51, 189, 239);
+      border-radius: 6px;
+      border: 1px solid rgb(5, 127, 208);
+      bottom: 3%;
+      font-family: 'Lobster', cursive;
+      left: 32%;     
+      padding: 20px 0;
+      position: absolute;
+      width: 700px;
+      z-index: 2;
+    }
+    #undo {
+      position: relative;
+      right: 49px;
+      z-index: 2;
+    }
+    #undo button {
+      background-image: url("back.png");
+      background-repeat: no-repeat;
+      height: 34px;
+      width: 35px;
+    }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div id="menu">
+        <div id="undo">
+          <button type="button"></button>
+        </div>
+        <div id="clear">
+          <button type="button"></button>
+        </div>
+      </div>
+      <div id="map"></div>
+      <h1 id="mileDisplay">Click the map to plan your run</h1>
+    </div>
+    <script>
+      function initMap() {
+        const MILES_IN_METER = 0.000621371192;
+        var icons = {
+          blue: 'blue-circle.png',
+          green: 'green-circle.png',
+          red: 'red-circle.png'
+        };
+        var mileDisplay = document.querySelector("#mileDisplay");
+        var segmantLength = 0;
+        var totalMilesRun = 0;
+        var track = [];
+        var trackPath = new google.maps.Polyline({
+            path: [],
+            strokeColor: '#ff6c6c',
+            strokeOpacity: 1.0,
+            strokeWeight: 3
+        });      
+        var usa = {lat: 37.483, lng: -96.494};
+
+        // =================================
+        //          Create the map
+        // =================================
+        
+        var map = new google.maps.Map(document.getElementById('map'), {
+            zoom: 5,
+            center: usa
+        });
+
+        // ==================================
+        //      Click to add marker (map)
+        // ==================================
+                                  
+        map.addListener('click', function(event) {
+          segmantLength = placeMarker(event.latLng);
+          updateTotalMiles(segmantLength);
+          drawPolyline();
+        });
+
+        // ==================================
+        //      Click to add marker (line)
+        // ==================================
+
+        trackPath.addListener('click', function(event) {
+          segmantLength = placeMarker(event.latLng);
+          updateTotalMiles(segmantLength);
+          drawPolyline();
+        });
+        // ===================================
+        //          Undo placed marker
+        // ===================================
+
+        document.querySelector("#undo").onclick = undoMarker;
+        
+        // ===================================
+        //    Draw line connecting markers
+        // ===================================
+
+        function drawPolyline() {
+          var trackCoordinates = [];
+          track.forEach(function(marker){
+            trackCoordinates.push(marker.position)
+          });
+          trackPath.setPath(trackCoordinates);
+          trackPath.setMap(map);
+        }
+
+        // ====================================
+        //    Add marker at clicked position
+        // ====================================
+
+        function placeMarker(currentPos) {
+          var marker = new google.maps.Marker({
+            position: currentPos,
+            map: map,
+            icon: {
+            	anchor: new google.maps.Point(6, 5),
+            	url: icons.red
+            }
+          });
+          if (track === undefined || track.length == 0) {
+            marker.previousDist = 0;
+            marker.icon.url = icons.green;       
+          } else {
+            previousMarker = track[track.length-1];
+            if (track.length > 1) {
+              previousMarker.icon.url = icons.blue;
+            }
+            marker.previousDist = google.maps.geometry.spherical.computeDistanceBetween(previousMarker.position, currentPos) * MILES_IN_METER;       
+          }         
+          track.push(marker);
+          addListenerToMarker(marker);
+          map.panTo(currentPos);
+          return marker.previousDist;
+        }
+
+        // ==================================
+        //    Click to add marker (marker)
+        // ==================================
+
+        function addListenerToMarker(marker) {
+          marker.addListener('click', function() {
+            previousPos = track[track.length-1].position;
+            if (previousPos != marker.position) {
+              segmantLength = placeMarker(marker.position);
+              updateTotalMiles(segmantLength);
+              drawPolyline();
+            }
+          });
+        }
+
+        /*function assignMarkerColor(marker, assignedTo) {
+          if (track.length === 0 && assignedTo == ) {
+            return(green)
+          } else if (track.length > ) {
+
+          }
+        }*/
+
+        function updateTotalMiles(segmantLength) {
+          totalMilesRun = totalMilesRun + segmantLength;
+          mileDisplay.innerHTML = "You will run " + totalMilesRun.toFixed(3) + " miles";
+        }
+
+        function undoMarker() {
+          var removedMarker = track.pop();
+          if (track.length > 0) {           
+            var milesLost = (removedMarker.previousDist) * -1;
+            if (track.length === 1) {
+              track[track.length-1].icon.url = icons.green;
+            } else {  
+              track[track.length-1].icon.url = icons.red;
+            }
+            drawPolyline();
+            updateTotalMiles(milesLost);
+            map.panTo(track[track.length-1].position);
+            removedMarker.setMap(null);
+          } else if (track.length === 0 && removedMarker != undefined) {
+            mileDisplay.innerHTML = "Click the map to plan your run";
+            removedMarker.setMap(null);
+          }
+        }
+      }
+    </script>
+    <script async defer
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAJMCWAnbyGCL7q_XICsjIn_ejnU7ugAn0&libraries=geometry&callback=initMap">
+    </script>
+  </body>
+</html>
