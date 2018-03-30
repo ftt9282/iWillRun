@@ -110,9 +110,19 @@
         // =================================
         
         var map = new google.maps.Map(document.getElementById('map'), {
-            zoom: 5,
-            center: usa
+            center: usa,
+            fullscreenControl: false,
+            mapTypeControl: true,
+            mapTypeControlOptions: {
+              style: google.maps.MapTypeControlStyle.DEFAULT,
+              mapTypeIds: ['roadmap', 'hybrid']
+            },
+            minZoom: 4,
+            streetViewControl: false,
+            zoom: 5     
         });
+        map.setTilt(0);
+        
 
         // ==================================
         //      Click to add marker (map)
