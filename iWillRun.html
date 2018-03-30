@@ -138,6 +138,7 @@
         // ===================================
 
         document.querySelector("#undo").onclick = undoMarker;
+        document.querySelector("#clear").onclick = clearMap;
         
         // ===================================
         //    Draw line connecting markers
@@ -161,21 +162,17 @@
             position: currentPos,
             map: map,
             icon: {
-            	anchor: new google.maps.Point(6, 5),
-            	url: icons.red
+              anchor: new google.maps.Point(6, 5),
+              url: ''
             }
           });
           if (track === undefined || track.length == 0) {
-            marker.previousDist = 0;
-            marker.icon.url = icons.green;       
+            marker.previousDist = 0;      
           } else {
-            previousMarker = track[track.length-1];
-            if (track.length > 1) {
-              previousMarker.icon.url = icons.blue;
-            }
-            marker.previousDist = google.maps.geometry.spherical.computeDistanceBetween(previousMarker.position, currentPos) * MILES_IN_METER;       
+            marker.previousDist = google.maps.geometry.spherical.computeDistanceBetween(track[track.length-1].position, currentPos) * MILES_IN_METER;       
           }         
           track.push(marker);
+          assignMarkerColors();
           addListenerToMarker(marker);
           map.panTo(currentPos);
           return marker.previousDist;
@@ -196,14 +193,6 @@
           });
         }
 
-        /*function assignMarkerColor(marker, assignedTo) {
-          if (track.length === 0 && assignedTo == ) {
-            return(green)
-          } else if (track.length > ) {
-
-          }
-        }*/
-
         function updateTotalMiles(segmantLength) {
           totalMilesRun = totalMilesRun + segmantLength;
           mileDisplay.innerHTML = "You will run " + totalMilesRun.toFixed(3) + " miles";
@@ -213,11 +202,7 @@
           var removedMarker = track.pop();
           if (track.length > 0) {           
             var milesLost = (removedMarker.previousDist) * -1;
-            if (track.length === 1) {
-              track[track.length-1].icon.url = icons.green;
-            } else {  
-              track[track.length-1].icon.url = icons.red;
-            }
+            assignMarkerColors();
             drawPolyline();
             updateTotalMiles(milesLost);
             map.panTo(track[track.length-1].position);
@@ -227,6 +212,36 @@
             removedMarker.setMap(null);
           }
         }
+
+        function assignMarkerColors() {
+          if (track.length == 1) {
+            track[track.length-1].icon.url = icons.green;
+          } else if (track.length == 2) {
+            track[track.length-1].icon.url = icons.red;
+          } else {
+            track[track.length-1].icon.url = icons.red;
+            track[track.length-2].icon.url = icons.blue;
+          }
+        }
+
+        function setMapOnAll(map) {
+          for (var i = 0; i < track.length; i++) {
+            track[i].setMap(map);
+          }
+        }
+
+        function clearTrack() {
+          setMapOnAll(null);
+          track = [];
+        }
+
+        function clearMap() {
+          clearTrack();         
+          drawPolyline();
+          totalMilesRun = 0;
+          mileDisplay.innerHTML = "Click the map to plan your run";
+        }
+        
       }
     </script>
     <script async defer
